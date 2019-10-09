@@ -1,7 +1,7 @@
 import boto3
 import datetime
 from project import db
-from project.models import Applicant, Resume
+from project.models import Applicant, Resume, Job, Application
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, current_user, logout_user, login_required
 from flask import render_template, url_for, redirect, request, Blueprint, session
@@ -101,7 +101,30 @@ def login():
 @users_blueprint.route('/applicant-view', methods=['GET', 'POST'])
 @login_required
 def applicant_view():
-    return render_template('applicant-view.html')
+    user_email = session['user_email']
+    page = request.args.get('page', 1, type=int)
+    total_jobs = Job.query.paginate(page=page, per_page=5)
+    total_job_count = (total_jobs.__dict__)['total']
+    user_obj = Applicant.query.filter_by(email=user_email).first()
+    applicant_obj = Application.query.filter_by(app_id=user_obj.id).all()
+    job_id_list = [x.job_id for x in applicant_obj]
+
+
+    if request.method == 'POST':
+        apply_job_id = request.form.get('apply_job', None)
+        new_application_obj = Application(appl_date=datetime.datetime.utcnow(),
+                                          app_id=user_obj.id,
+                                          job_id=apply_job_id)
+        db.session.add(new_application_obj)
+        db.session.commit()
+        return redirect(url_for('users.applicant_view'))
+
+
+    return render_template('applicant-view.html',
+                           total_jobs=total_jobs,
+                           user_name=user_obj.name,
+                           job_id_list=job_id_list,
+                           total_job_count=total_job_count)
 
 
 ########################################################################################################################

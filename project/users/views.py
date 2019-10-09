@@ -4,7 +4,7 @@ from project import db
 from project.models import Applicant, Resume
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, current_user, logout_user, login_required
-from flask import render_template, url_for, flash, redirect, request, Blueprint, session
+from flask import render_template, url_for, redirect, request, Blueprint, session
 
 
 users_blueprint = Blueprint('users', __name__, template_folder='templates')
@@ -15,7 +15,6 @@ users_blueprint = Blueprint('users', __name__, template_folder='templates')
 def logout():
     logout_user()
     session.clear()
-    flash('Logged Out')
     return redirect(url_for('users.login'))
 
 

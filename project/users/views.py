@@ -67,7 +67,8 @@ def register():
             db.session.commit()
 
             user = Applicant.query.filter_by(email=email).first()
-            public_resume_link = file_upload_to_s3(resume, resume_name)
+            # public_resume_link = file_upload_to_s3(resume, resume_name)
+            public_resume_link = 'tobedone'
             new_resume_obj = Resume(app_id=user.id,
                                     resume=public_resume_link)
             db.session.add(new_resume_obj)
@@ -108,7 +109,8 @@ def applicant_view():
     user_obj = Applicant.query.filter_by(email=user_email).first()
     applicant_obj = Application.query.filter_by(app_id=user_obj.id).all()
     job_id_list = [x.job_id for x in applicant_obj]
-
+    applied_list = [x.status for x in applicant_obj]
+    job_id_list = dict(zip(job_id_list, applied_list))
 
     if request.method == 'POST':
         apply_job_id = request.form.get('apply_job', None)

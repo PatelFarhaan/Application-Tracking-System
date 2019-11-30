@@ -58,22 +58,25 @@ def register():
         user = Applicant.query.filter_by(email=email).first()
 
         if user == None:
-            new_user_obj = Applicant(name=name,
-                                     email=email,
-                                     gender=gender,
-                                     birth_date=datetime.datetime.strptime(dob, '%m/%d/%Y'),
-                                     hashed_password=generate_password_hash(password))
-            db.session.add(new_user_obj)
-            db.session.commit()
+            try:
+                new_user_obj = Applicant(name=name,
+                                         email=email,
+                                         gender=gender,
+                                         birth_date=datetime.datetime.strptime(dob, '%m/%d/%Y'),
+                                         hashed_password=generate_password_hash(password))
+                db.session.add(new_user_obj)
+                db.session.commit()
 
-            user = Applicant.query.filter_by(email=email).first()
-            # public_resume_link = file_upload_to_s3(resume, resume_name)
-            public_resume_link = 'tobedone'
-            new_resume_obj = Resume(app_id=user.id,
-                                    resume=public_resume_link)
-            db.session.add(new_resume_obj)
-            db.session.commit()
-            return redirect(url_for('users.login'))
+                user = Applicant.query.filter_by(email=email).first()
+                public_resume_link = file_upload_to_s3(resume, resume_name)
+                new_resume_obj = Resume(app_id=user.id,
+                                        resume=public_resume_link)
+                db.session.add(new_resume_obj)
+                db.session.commit()
+                return redirect(url_for('users.login'))
+            except:
+                db.session.rollback()
+            db.session.remove()
         else:
             return render_template('register.html', warning='Email already exists. Please Login')
     return render_template('register.html')
@@ -133,12 +136,32 @@ def applicant_view():
 ########################################################################################################################
 ########################################################################################################################
 def file_upload_to_s3(file, object_name):
-    bucket = 'putbox-darshan'
+    bucket = 'cmpe226-ats2'
     s3 = boto3.client(
         's3',
-        aws_access_key_id='AKIA5SX2735H2JOS3RN2',
-        aws_secret_access_key='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'
+        aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
+        aws_secret_access_key='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'
     )
+    # s3.upload_fileobj(file, bucket, object_name, ExtraArgs={"ACL": "public-read"})
     s3.upload_fileobj(file, bucket, object_name, ExtraArgs={"ACL": "public-read"})
-    public_url = f"https://putbox-darshan.s3-us-west-1.amazonaws.com/{object_name}"
+    public_url = f"https://cmpe226-ats2.s3-us-west-1.amazonaws.com/{object_name}"
     return public_url
+
+def dynamoDB(app_id, public_url):
+    dynamodb = boto3.client(
+        'dynamodb',
+        region_name='us-west-1',
+        aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
+        aws_secret_access_key='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'
+    )
+    table = dynamodb.Table('ats')
+    response = table.put_item(
+        Item={
+            'resumes': {
+                app_id:
+                    {
+                        datetime.datetime.utcnow(): public_url
+                    }
+            }
+        }
+    )

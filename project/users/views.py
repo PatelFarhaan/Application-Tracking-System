@@ -84,6 +84,8 @@ def register():
 
 @users_blueprint.route('/login', methods=['GET','POST'])
 def login():
+    print("###########################################################################################################")
+
     session.clear()
     if request.method == 'POST':
         email = request.form.get('email', 'None')
@@ -95,7 +97,6 @@ def login():
         elif check_password_hash(user.hashed_password, password) and user is not None:
             login_user(user)
             session['user_email'] = user.email
-            print("user is logged in!!!", current_user.is_authenticated)
             return redirect(url_for('users.applicant_view'))
         else:
             return render_template('login.html', warning='Password is incorrect')
@@ -105,6 +106,7 @@ def login():
 @users_blueprint.route('/applicant-view', methods=['GET', 'POST'])
 @login_required
 def applicant_view():
+    print(current_user)
     user_email = session['user_email']
     page = request.args.get('page', 1, type=int)
     total_jobs = Job.query.paginate(page=page, per_page=5)
@@ -134,6 +136,7 @@ def applicant_view():
 
 @users_blueprint.route('/applicant-attachments', methods=['GET','POST'])
 def applicant_attachments():
+    print(current_user)
     user_email = session['user_email']
     user_obj = Applicant.query.filter_by(email=user_email).first()
     username = user_obj.name

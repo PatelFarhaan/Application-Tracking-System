@@ -132,6 +132,108 @@ def applicant_view():
                            total_job_count=total_job_count)
 
 
+@users_blueprint.route('/applicant-attachments', methods=['GET','POST'])
+def applicant_attachments():
+    user_email = session['user_email']
+    user_obj = Applicant.query.filter_by(email=user_email).first()
+    username = user_obj.name
+    if request.method == 'POST':
+        lor = request.files.get('lor', None)
+        lor_name = lor.filename.replace(' ', '')
+        transcripts = request.files.get('transcripts', None)
+        transcripts_name = transcripts.filename.replace(' ', '')
+        cover_letter = request.files.get('cover_letter', None)
+        cover_letter_name = cover_letter.filename.replace(' ', '')
+
+        if not lor is None and lor.filename != '':
+            public_lor_link = file_upload_to_dynamo_s3(lor, lor_name)
+            user_dynamo_obj = {
+                'pk': user_obj.id
+            }
+            read_response = read_from_dynamo(user_dynamo_obj)
+            if 'Item' in read_response:
+                lor_obj = {
+                                'type': 'LOR',
+                                'link': public_lor_link
+                            }
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                read_response['Item']['attachments'][dt_obj] = lor_obj
+                write_resp = write_to_dynamo(read_response['Item'])
+                print(write_resp)
+            else:
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                dynamo_obj = {
+                    'pk': user_obj.id,
+                    'attachments':
+                        {
+                            dt_obj: {
+                                'type': 'LOR',
+                                'link': public_lor_link
+                            }
+                        }
+                    }
+                write_to_dynamo(dynamo_obj)
+
+        if not transcripts is None and transcripts.filename != '':
+            public_transcript_link = file_upload_to_dynamo_s3(transcripts, transcripts_name)
+            user_dynamo_obj = {
+                'pk': user_obj.id
+            }
+            read_response = read_from_dynamo(user_dynamo_obj)
+            if 'Item' in read_response:
+                trns_obj = {
+                    'type': 'TRANSCRIPTS',
+                    'link': public_transcript_link
+                }
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                read_response['Item']['attachments'][dt_obj] = trns_obj
+                write_resp = write_to_dynamo(read_response['Item'])
+                print(write_resp)
+            else:
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                dynamo_obj = {
+                    'pk': user_obj.id,
+                    'attachments':
+                        {
+                            dt_obj: {
+                                'type': 'TRANSCRIPTS',
+                                'link': public_transcript_link
+                            }
+                        }
+                }
+                write_to_dynamo(dynamo_obj)
+
+        if not cover_letter is None and cover_letter.filename != '':
+            public_cv_link = file_upload_to_dynamo_s3(cover_letter, cover_letter_name)
+            user_dynamo_obj = {
+                'pk': user_obj.id
+            }
+            read_response = read_from_dynamo(user_dynamo_obj)
+            if 'Item' in read_response:
+                cv_obj = {
+                    'type': 'COVER-LETTER',
+                    'link': public_cv_link
+                }
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                read_response['Item']['attachments'][dt_obj] = cv_obj
+                write_resp = write_to_dynamo(read_response['Item'])
+                print(write_resp)
+            else:
+                dt_obj = f'{datetime.datetime.utcnow()}'
+                dynamo_obj = {
+                    'pk': user_obj.id,
+                    'attachments':
+                        {
+                            dt_obj: {
+                                'type': 'COVER-LETTER',
+                                'link': public_cv_link
+                            }
+                        }
+                }
+                write_to_dynamo(dynamo_obj)
+
+        return redirect(url_for('users.applicant_view'))
+    return render_template('applicant_attachments.html', user_name=username)
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -142,26 +244,46 @@ def file_upload_to_s3(file, object_name):
         aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
         aws_secret_access_key='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'
     )
-    # s3.upload_fileobj(file, bucket, object_name, ExtraArgs={"ACL": "public-read"})
     s3.upload_fileobj(file, bucket, object_name, ExtraArgs={"ACL": "public-read"})
     public_url = f"https://cmpe226-ats2.s3-us-west-1.amazonaws.com/{object_name}"
     return public_url
 
-def dynamoDB(app_id, public_url):
-    dynamodb = boto3.client(
+
+def file_upload_to_dynamo_s3(file, object_name):
+    bucket = 'cmpe226-ats-dynamodb'
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
+        aws_secret_access_key='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'
+    )
+    s3.upload_fileobj(file, bucket, object_name, ExtraArgs={"ACL": "public-read"})
+    public_url = f"https://cmpe226-ats-dynamodb.s3-us-west-1.amazonaws.com/{object_name}"
+    return public_url
+
+
+def write_to_dynamo(item_obj: dict):
+    dynamodb = boto3.resource(
+        'dynamodb',
+        region_name='us-west-1',
+        aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
+        aws_secret_access_key='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'
+        )
+    table = dynamodb.Table('cmpeats')
+    response = table.put_item(
+        Item=item_obj
+    )
+    print(response)
+
+
+def read_from_dynamo(item_obj: dict):
+    dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-west-1',
         aws_access_key_id='AKIAUEGXZZHFW6U6QN2L',
         aws_secret_access_key='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'
     )
-    table = dynamodb.Table('ats')
-    response = table.put_item(
-        Item={
-            'resumes': {
-                app_id:
-                    {
-                        datetime.datetime.utcnow(): public_url
-                    }
-            }
-        }
+    table = dynamodb.Table('cmpeats')
+    response = table.get_item(
+        Key=item_obj
     )
+    return response

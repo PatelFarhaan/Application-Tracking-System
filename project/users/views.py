@@ -106,7 +106,6 @@ def login():
 @users_blueprint.route('/applicant-view', methods=['GET', 'POST'])
 @login_required
 def applicant_view():
-    print(current_user)
     user_email = session['user_email']
     page = request.args.get('page', 1, type=int)
     total_jobs = Job.query.paginate(page=page, per_page=5)
@@ -128,6 +127,7 @@ def applicant_view():
 
 
     return render_template('applicant-view.html',
+                           is_applicant=True,
                            total_jobs=total_jobs,
                            user_name=user_obj.name,
                            job_id_list=job_id_list,

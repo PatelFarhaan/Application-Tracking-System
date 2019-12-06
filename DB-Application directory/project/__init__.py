@@ -5,12 +5,21 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_utils import create_database, database_exists
 
 
-##########################DATABASE##################################
+########################## DATABASE ##################################
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:farees@localhost/ats'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+####################### MAIL CONFIG ###################################
+app.config['MAIL_SERVER']  = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USER_TSL'] = False
+app.config['MAIL_USERNAME'] = 'patel.farhaaan@gmail.com'
+app.config['MAIL_PASSWORD'] = 'ilovemylifeandmyfamily143k'
+
 db = SQLAlchemy(app)
 Migrate(app, db)
 
@@ -25,7 +34,7 @@ login_manager.blueprint_login_views = {
     'staff': '/staff-login'
 }
 
-##############################BLUEPRINTS################################
+########################### BLUEPRINTS ################################
 from project.core.views import core_blueprint
 from project.users.views import users_blueprint
 from project.admin.views import admin_blueprint

@@ -3,7 +3,7 @@ sys.path.append('../../')
 
 import boto3
 import datetime
-from project import db
+from project import db, app
 from project.models import Applicant, Resume, Job, Application
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, current_user, logout_user, login_required
@@ -16,7 +16,7 @@ users_blueprint = Blueprint('users', __name__, template_folder='templates')
 ########################################################################################################################
 import logging
 logging.basicConfig(format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-                        filename='/home/ubuntu/application_tracking_system/LOG/app.log',
+                        filename=app.config['LOG_PATH'],
                         datefmt='%d-%b-%y %H:%M:%S',
                         level=logging.DEBUG,
                         filemode='a')

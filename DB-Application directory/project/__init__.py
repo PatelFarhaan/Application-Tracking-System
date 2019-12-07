@@ -12,6 +12,7 @@ app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:farees@localhost/ats'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['LOG_PATH'] = '/media/farhaan/New Volume/Masters/CMPE226_TEAM1_SOURCES/LOG/app.log'
 
 db = SQLAlchemy(app)
 Migrate(app, db)

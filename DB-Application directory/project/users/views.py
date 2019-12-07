@@ -1,6 +1,6 @@
 import boto3
 import datetime
-from project import db
+from project import db, app
 from project.models import Applicant, Resume, Job, Application
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, current_user, logout_user, login_required
@@ -66,11 +66,14 @@ def register():
                                          psw=generate_password_hash(password))
                 db.session.add(new_user_obj)
                 db.session.commit()
+                app.logger.debug('New Applicant {name} Registered'.format(name=name))
 
                 user = Applicant.query.filter_by(emailid=email).first()
                 public_resume_link = file_upload_to_s3(resume, resume_name)
                 new_resume_obj = Resume(app_id=user.app_id,
                                         resume=public_resume_link)
+                app.logger.debug('Applicant {name} Uploaded a Resume: {link}'.format(name=name, link=public_resume_link))
+
                 db.session.add(new_resume_obj)
                 db.session.commit()
                 return redirect(url_for('users.login'))
@@ -91,8 +94,10 @@ def login():
         user = Applicant.query.filter_by(emailid=email).first()
 
         if user == None:
+            app.logger.debug('Applicant {email} Does Not Exist'.format(email=email))
             return render_template('login.html', warning='Email Does not exist!!!')
         elif check_password_hash(user.psw, password) and user is not None:
+            app.logger.debug('Applicant {name} Logged In'.format(name=user.name))
             login_user(user)
             session['user_email'] = user.emailid
             return redirect(url_for('users.applicant_view'))
@@ -117,17 +122,16 @@ def applicant_view():
     job_id_list = dict(zip(job_id_list, applied_list))
 
     if request.method == 'POST':
-        print("########################################################################")
         apply_job_id = request.form.get('apply_job', None)
         new_application_obj = Application(appl_dt=datetime.date.today(),
                                           app_id=user_obj.app_id,
                                           jobid=apply_job_id)
-        print("rock you", apply_job_id)
-        print("########################################################################")
 
 
         db.session.add(new_application_obj)
         db.session.commit()
+        job_name = Job.query.filter_by(jobid=apply_job_id).first().name
+        app.logger.debug('Applicant {name} Applied for the Job {jname}'.format(name=user_obj.name, jname=job_name))
         return redirect(url_for('users.applicant_view'))
 
 
@@ -141,7 +145,6 @@ def applicant_view():
 
 @users_blueprint.route('/applicant-attachments', methods=['GET','POST'])
 def applicant_attachments():
-    print(current_user)
     user_email = session['user_email']
     user_obj = Applicant.query.filter_by(emailid=user_email).first()
     username = user_obj.name
@@ -167,7 +170,7 @@ def applicant_attachments():
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 read_response['Item']['attachments'][dt_obj] = lor_obj
                 write_resp = write_to_dynamo(read_response['Item'])
-                print(write_resp)
+                app.logger.debug('Applicant {name} Uploaded LOR'.format(name=username))
             else:
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 dynamo_obj = {
@@ -180,6 +183,7 @@ def applicant_attachments():
                             }
                         }
                     }
+                app.logger.debug('Applicant {name} Uploaded LOR'.format(name=username))
                 write_to_dynamo(dynamo_obj)
 
         if not transcripts is None and transcripts.filename != '':
@@ -196,7 +200,7 @@ def applicant_attachments():
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 read_response['Item']['attachments'][dt_obj] = trns_obj
                 write_resp = write_to_dynamo(read_response['Item'])
-                print(write_resp)
+                app.logger.debug('Applicant {name} Uploaded Transcripts'.format(name=username))
             else:
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 dynamo_obj = {
@@ -209,6 +213,7 @@ def applicant_attachments():
                             }
                         }
                 }
+                app.logger.debug('Applicant {name} Uploaded Transcripts'.format(name=username))
                 write_to_dynamo(dynamo_obj)
 
         if not cover_letter is None and cover_letter.filename != '':
@@ -225,7 +230,7 @@ def applicant_attachments():
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 read_response['Item']['attachments'][dt_obj] = cv_obj
                 write_resp = write_to_dynamo(read_response['Item'])
-                print(write_resp)
+                app.logger.debug('Applicant {name} Uploaded Cover Letter'.format(name=username))
             else:
                 dt_obj = f'{datetime.datetime.utcnow()}'
                 dynamo_obj = {
@@ -239,9 +244,11 @@ def applicant_attachments():
                         }
                 }
                 write_to_dynamo(dynamo_obj)
+                app.logger.debug('Applicant {name} Uploaded Cover Letter'.format(name=username))
 
         return redirect(url_for('users.applicant_view'))
     return render_template('applicant_attachments.html', user_name=username)
+
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################

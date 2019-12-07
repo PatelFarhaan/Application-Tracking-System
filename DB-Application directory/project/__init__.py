@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -14,6 +15,10 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 db = SQLAlchemy(app)
 Migrate(app, db)
+
+logging.basicConfig(filename='../LOG/demo.log',
+                    level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(name)s : %(message)s')
 
 if not database_exists(app.config['SQLALCHEMY_DATABASE_URI']):
     create_database(app.config['SQLALCHEMY_DATABASE_URI'])

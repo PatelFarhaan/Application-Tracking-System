@@ -12,14 +12,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:farees@localhost/a
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-####################### MAIL CONFIG ###################################
-app.config['MAIL_SERVER']  = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USER_TSL'] = False
-app.config['MAIL_USERNAME'] = 'patel.farhaaan@gmail.com'
-app.config['MAIL_PASSWORD'] = 'ilovemylifeandmyfamily143k'
-
 db = SQLAlchemy(app)
 Migrate(app, db)
 
